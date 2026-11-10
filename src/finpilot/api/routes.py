@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import text
 
 from finpilot import __version__
-from finpilot.api.deps import ContainerDep, ServiceDep
+from finpilot.api.deps import ContainerDep, ServiceDep, limit_default, limit_research
 from finpilot.api.schemas import (
     CompanyScoresResponse,
     ErrorResponse,
@@ -20,6 +20,7 @@ router = APIRouter()
 _ERRORS: dict[int | str, dict[str, Any]] = {
     400: {"model": ErrorResponse},
     404: {"model": ErrorResponse},
+    429: {"model": ErrorResponse},
     502: {"model": ErrorResponse},
 }
 
@@ -42,26 +43,47 @@ def health(container: ContainerDep) -> HealthResponse:
     )
 
 
-@router.get("/v1/companies/{ticker}", response_model=CompanyData, responses=_ERRORS,
-            tags=["companies"])
+@router.get(
+    "/v1/companies/{ticker}",
+    response_model=CompanyData,
+    responses=_ERRORS,
+    tags=["companies"],
+    dependencies=[Depends(limit_default)],
+)
 def get_company(ticker: str, service: ServiceDep) -> CompanyData:
     return service.get_company(ticker)
 
 
-@router.get("/v1/companies/{ticker}/scores", response_model=CompanyScoresResponse,
-            responses=_ERRORS, tags=["companies"])
+@router.get(
+    "/v1/companies/{ticker}/scores",
+    response_model=CompanyScoresResponse,
+    responses=_ERRORS,
+    tags=["companies"],
+    dependencies=[Depends(limit_default)],
+)
 def get_scores(ticker: str, service: ServiceDep) -> CompanyScoresResponse:
     company, scores = service.get_scores(ticker)
     return CompanyScoresResponse(company=company, scores=scores)
 
 
-@router.post("/v1/research", response_model=ResearchResult, responses=_ERRORS, tags=["research"])
+@router.post(
+    "/v1/research",
+    response_model=ResearchResult,
+    responses=_ERRORS,
+    tags=["research"],
+    dependencies=[Depends(limit_research)],
+)
 def create_research(body: ResearchRequest, service: ServiceDep) -> ResearchResult:
     return service.research(body.ticker, refresh=body.refresh)
 
 
-@router.get("/v1/research", response_model=list[ResearchSummary], responses=_ERRORS,
-            tags=["research"])
+@router.get(
+    "/v1/research",
+    response_model=list[ResearchSummary],
+    responses=_ERRORS,
+    tags=["research"],
+    dependencies=[Depends(limit_default)],
+)
 def list_research(
     service: ServiceDep,
     ticker: str | None = None,
@@ -81,7 +103,12 @@ def list_research(
     ]
 
 
-@router.get("/v1/research/{report_id}", response_model=ResearchResult, responses=_ERRORS,
-            tags=["research"])
+@router.get(
+    "/v1/research/{report_id}",
+    response_model=ResearchResult,
+    responses=_ERRORS,
+    tags=["research"],
+    dependencies=[Depends(limit_default)],
+)
 def get_research(report_id: str, service: ServiceDep) -> ResearchResult:
     return service.get_report(report_id)

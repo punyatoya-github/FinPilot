@@ -48,8 +48,11 @@ class PromptBuilder:
                         "score": None if c.score is None else round(c.score, 1),
                         "status": c.status,
                         "metrics": [
-                            {"metric": m.metric, "raw_value": m.raw_value,
-                             "score": None if m.score is None else round(m.score, 1)}
+                            {
+                                "metric": m.metric,
+                                "raw_value": m.raw_value,
+                                "score": None if m.score is None else round(m.score, 1),
+                            }
                             for m in c.components
                         ],
                     }

@@ -3,12 +3,13 @@ picks concrete implementations."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import timedelta
 
 from sqlalchemy.orm import Session, sessionmaker
 
 from finpilot.core.config import Settings
+from finpilot.core.rate_limit import RateLimiter
 from finpilot.market_data.base import MarketDataProvider
 from finpilot.market_data.caching import CachingMarketDataProvider
 from finpilot.market_data.yfinance_provider import YFinanceProvider
@@ -30,6 +31,8 @@ class Container:
     research_service: ResearchService
     session_factory: sessionmaker[Session]
     openai_configured: bool = False
+    default_limiter: RateLimiter = field(default_factory=lambda: RateLimiter(0))
+    research_limiter: RateLimiter = field(default_factory=lambda: RateLimiter(0))
 
 
 def _build_generator(settings: Settings) -> ReportGenerator:
@@ -74,4 +77,6 @@ def build_container(settings: Settings | None = None) -> Container:
         research_service=service,
         session_factory=session_factory,
         openai_configured=not isinstance(generator, UnconfiguredReportGenerator),
+        default_limiter=RateLimiter(settings.rate_limit_default_per_minute),
+        research_limiter=RateLimiter(settings.rate_limit_research_per_minute),
     )

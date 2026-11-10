@@ -37,3 +37,9 @@ class ReportNotFoundError(FinPilotError):
     def __init__(self, report_id: str) -> None:
         super().__init__(f"No report found with id {report_id!r}")
         self.report_id = report_id
+
+
+class RateLimitedError(FinPilotError):
+    def __init__(self, retry_after: float) -> None:
+        super().__init__(f"Rate limit exceeded. Try again in {max(1, round(retry_after))} seconds.")
+        self.retry_after = retry_after

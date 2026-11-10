@@ -11,9 +11,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_prefix="FINPILOT_", env_file=".env", extra="ignore"
-    )
+    model_config = SettingsConfigDict(env_prefix="FINPILOT_", env_file=".env", extra="ignore")
 
     env: str = "dev"
     log_level: str = "INFO"
@@ -28,3 +26,9 @@ class Settings(BaseSettings):
     openai_timeout_seconds: float = 30.0
     report_cache_ttl_hours: float = 24.0
     data_cache_ttl_hours: float = 24.0
+    enable_ui: bool = True
+    # Requests per minute per client; 0 disables the limiter.
+    rate_limit_research_per_minute: int = 10
+    rate_limit_default_per_minute: int = 60
+    # Only enable behind a trusted reverse proxy that sets X-Forwarded-For.
+    rate_limit_trust_proxy: bool = False

@@ -9,6 +9,7 @@ import uuid
 from collections.abc import Awaitable, Callable
 
 from fastapi import FastAPI, Request, Response
+from fastapi.responses import RedirectResponse
 
 from finpilot import __version__
 from finpilot.api.errors import register_error_handlers
@@ -21,7 +22,7 @@ logger = logging.getLogger("finpilot.http")
 _REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9_\-]{1,64}$")
 
 
-def create_app(container: Container | None = None) -> FastAPI:
+def create_app(container: Container | None = None, *, mount_ui: bool | None = None) -> FastAPI:
     if container is None:
         settings = Settings()
         configure_logging(settings.log_level)
@@ -52,4 +53,23 @@ def create_app(container: Container | None = None) -> FastAPI:
 
     register_error_handlers(app)
     app.include_router(router)
+
+    if container.settings.enable_ui if mount_ui is None else mount_ui:
+        _mount_dashboard(app, container)
     return app
+
+
+def _mount_dashboard(app: FastAPI, container: Container) -> None:
+    import gradio as gr  # lazy: keeps API-only imports and tests light
+
+    from finpilot.ui.backends import ServiceBackend
+    from finpilot.ui.dashboard import build_dashboard
+
+    dashboard = build_dashboard(
+        ServiceBackend(container.research_service), container.research_limiter
+    )
+    gr.mount_gradio_app(app, dashboard, path="/ui")
+
+    @app.get("/", include_in_schema=False)
+    def root() -> RedirectResponse:
+        return RedirectResponse("/ui")

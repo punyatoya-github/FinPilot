@@ -132,3 +132,33 @@ def test_request_id_is_propagated_or_generated(client: TestClient) -> None:
     generated = client.get("/health", headers={"X-Request-ID": "bad id\nwith newline"})
     assert generated.headers["X-Request-ID"] != "bad id\nwith newline"
     assert len(generated.headers["X-Request-ID"]) == 32
+
+
+def test_research_endpoint_is_rate_limited(sample_info: dict[str, Any]) -> None:
+    from finpilot.core.rate_limit import RateLimiter
+
+    container = make_container(
+        FakeProvider(sample_info), FakeGenerator(), research_limiter=RateLimiter(2, 60)
+    )
+    with TestClient(create_app(container)) as c:
+        assert c.post("/v1/research", json={"ticker": "EXMP"}).status_code == 200
+        assert c.post("/v1/research", json={"ticker": "EXMP"}).status_code == 200
+        blocked = c.post("/v1/research", json={"ticker": "EXMP"})
+        _assert_error(blocked, 429, "RATE_LIMITED")
+        assert int(blocked.headers["Retry-After"]) >= 1
+        assert c.get("/v1/companies/EXMP").status_code == 200  # separate default limiter
+        assert c.get("/health").status_code == 200
+
+
+def test_default_limiter_covers_read_endpoints_but_not_health(
+    sample_info: dict[str, Any],
+) -> None:
+    from finpilot.core.rate_limit import RateLimiter
+
+    container = make_container(
+        FakeProvider(sample_info), FakeGenerator(), default_limiter=RateLimiter(1, 60)
+    )
+    with TestClient(create_app(container)) as c:
+        assert c.get("/v1/companies/EXMP").status_code == 200
+        _assert_error(c.get("/v1/companies/EXMP/scores"), 429, "RATE_LIMITED")
+        assert all(c.get("/health").status_code == 200 for _ in range(5))

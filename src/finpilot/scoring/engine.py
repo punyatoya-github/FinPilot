@@ -73,9 +73,7 @@ class ScoringEngine:
         for metric, mcfg in cfg.metrics.items():
             value = metrics.get(metric)
             raw_scores[metric] = (
-                None
-                if value is None
-                else score_value(value, mcfg.anchors, mcfg.nonpositive_score)
+                None if value is None else score_value(value, mcfg.anchors, mcfg.nonpositive_score)
             )
 
         available_weight = sum(

@@ -8,6 +8,7 @@ from typing import Any
 
 from finpilot.core.config import Settings
 from finpilot.core.container import Container
+from finpilot.core.rate_limit import RateLimiter
 from finpilot.domain.models import CompanyData, HealthScores, InvestmentReport
 from finpilot.domain.tickers import normalize_ticker
 from finpilot.market_data.normalizer import normalize_info
@@ -29,8 +30,8 @@ def canned_report() -> InvestmentReport:
         business_overview="Makes example software (general knowledge; verify with filings).",
         bull_case=["Strong margins", "Healthy growth"],
         bear_case=["Rich valuation", "Competition"],
-        key_strengths=["Profitability"],
-        key_risks=["Valuation risk"],
+        key_strengths=["Profitability", "Balance sheet"],
+        key_risks=["Valuation risk", "Regulatory exposure"],
         financial_health_assessment="Balance sheet looks solid.",
         growth_outlook="Growth is solid relative to thresholds.",
         overall_opinion="Fundamentals look strong; weigh valuation carefully.",
@@ -92,21 +93,31 @@ class FakeChatClient:
 
 
 def make_container(
-    provider: FakeProvider, generator: FakeGenerator, clock: FakeClock | None = None
+    provider: FakeProvider,
+    generator: FakeGenerator,
+    clock: FakeClock | None = None,
+    *,
+    default_limiter: RateLimiter | None = None,
+    research_limiter: RateLimiter | None = None,
 ) -> Container:
     engine = create_db_engine("sqlite://")
     init_db(engine)
     session_factory = make_session_factory(engine)
     scoring = ScoringEngine(ScoringConfig.from_yaml(CONFIG_PATH))
     service = ResearchService(
-        provider, scoring, generator, SqlReportRepository(session_factory),
+        provider,
+        scoring,
+        generator,
+        SqlReportRepository(session_factory),
         clock=clock or FakeClock(),
     )
     return Container(
-        settings=Settings(),
+        settings=Settings(enable_ui=False),
         provider=provider,
         scoring_engine=scoring,
         research_service=service,
         session_factory=session_factory,
         openai_configured=True,
+        default_limiter=default_limiter or RateLimiter(0),
+        research_limiter=research_limiter or RateLimiter(0),
     )

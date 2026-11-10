@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -12,15 +13,23 @@ from finpilot.core import errors as e
 
 logger = logging.getLogger(__name__)
 
-# Order matters only for subclass relationships; none of these subclass each other.
-_MAPPING: list[tuple[type[e.FinPilotError], int, str]] = [
+ERROR_MAPPING: list[tuple[type[e.FinPilotError], int, str]] = [
     (e.InvalidTickerError, 400, "INVALID_TICKER"),
     (e.TickerNotFoundError, 404, "TICKER_NOT_FOUND"),
     (e.ReportNotFoundError, 404, "REPORT_NOT_FOUND"),
     (e.InsufficientDataError, 422, "INSUFFICIENT_DATA"),
+    (e.RateLimitedError, 429, "RATE_LIMITED"),
     (e.DataProviderError, 502, "DATA_PROVIDER_ERROR"),
     (e.LLMError, 502, "LLM_ERROR"),
 ]
+
+
+def classify(exc: BaseException) -> tuple[int, str]:
+    """(HTTP status, machine-readable code) for an exception."""
+    for cls, status, code in ERROR_MAPPING:
+        if isinstance(exc, cls):
+            return status, code
+    return 500, "INTERNAL_ERROR"
 
 
 def _request_id(request: Request) -> str:
@@ -37,11 +46,14 @@ def _envelope(request: Request, status: int, code: str, message: str) -> JSONRes
 def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(e.FinPilotError)
     async def _domain_error(request: Request, exc: Exception) -> JSONResponse:
-        for cls, status, code in _MAPPING:
-            if isinstance(exc, cls):
-                return _envelope(request, status, code, str(exc))
-        logger.exception("unmapped domain error")
-        return _envelope(request, 500, "INTERNAL_ERROR", "Internal server error")
+        status, code = classify(exc)
+        if status == 500:
+            logger.exception("unmapped domain error")
+            return _envelope(request, 500, code, "Internal server error")
+        response = _envelope(request, status, code, str(exc))
+        if isinstance(exc, e.RateLimitedError):
+            response.headers["Retry-After"] = str(max(1, math.ceil(exc.retry_after)))
+        return response
 
     @app.exception_handler(RequestValidationError)
     async def _validation_error(request: Request, exc: Exception) -> JSONResponse:
