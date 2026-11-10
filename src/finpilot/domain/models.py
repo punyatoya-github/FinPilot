@@ -81,3 +81,40 @@ class HealthScores(BaseModel):
     confidence: Confidence
     coverage: float = Field(ge=0, le=1)  # share of metrics that could be scored
     methodology_version: str
+
+
+DISCLAIMER = (
+    "FinPilot provides educational research only and is not financial, investment, "
+    "legal or tax advice. Data may be delayed or inaccurate. Do your own research and "
+    "consult a licensed professional before investing."
+)
+
+
+class InvestmentReport(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    executive_summary: str
+    business_overview: str
+    bull_case: list[str]
+    bear_case: list[str]
+    key_strengths: list[str]
+    key_risks: list[str]
+    financial_health_assessment: str
+    growth_outlook: str
+    overall_opinion: str  # educational framing; never buy/sell/hold language
+
+
+class ResearchResult(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    report_id: str
+    company: CompanyProfile
+    fundamentals: FundamentalsSnapshot
+    scores: HealthScores
+    report: InvestmentReport | None
+    degraded: bool = False
+    cached: bool = False
+    model: str
+    prompt_version: str
+    generated_at: datetime
+    disclaimer: str = DISCLAIMER
