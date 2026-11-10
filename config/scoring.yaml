@@ -1,0 +1,57 @@
+# FinPilot scoring methodology.
+# Each metric maps a raw value to 0-100 via piecewise-linear anchors [value, score].
+# Values outside the anchor range clamp to the first/last score.
+# Category score = weighted mean of available metric scores (weights renormalized).
+# A category with less than `min_coverage` of its metrics available is "insufficient_data".
+# NOTE: thresholds are absolute, not sector-relative (Phase 2 item).
+methodology_version: "1.0.0"
+
+categories:
+  growth:
+    weight: 0.30
+    min_coverage: 0.5
+    metrics:
+      revenue_growth:
+        weight: 0.6
+        anchors: [[-0.10, 0], [0.0, 10], [0.10, 50], [0.25, 95]]
+      earnings_growth:
+        weight: 0.4
+        anchors: [[-0.20, 0], [0.0, 15], [0.10, 50], [0.30, 95]]
+
+  profitability:
+    weight: 0.25
+    min_coverage: 0.5
+    metrics:
+      profit_margin:
+        weight: 0.5
+        anchors: [[-0.10, 0], [0.0, 10], [0.05, 35], [0.15, 65], [0.25, 85], [0.35, 100]]
+      operating_margin:
+        weight: 0.5
+        anchors: [[-0.10, 0], [0.0, 10], [0.08, 35], [0.18, 65], [0.28, 90], [0.40, 100]]
+
+  valuation:
+    weight: 0.20
+    min_coverage: 0.5
+    metrics:
+      pe_trailing:
+        weight: 0.5
+        nonpositive_score: 10   # loss-making: P/E is not meaningful
+        anchors: [[10, 95], [20, 80], [30, 60], [45, 35], [70, 10]]
+      pe_forward:
+        weight: 0.5
+        nonpositive_score: 10
+        anchors: [[10, 95], [20, 80], [30, 60], [45, 35], [70, 10]]
+
+  financial_health:
+    weight: 0.25
+    min_coverage: 0.5
+    metrics:
+      debt_to_equity:        # ratio (1.0 = debt equals equity)
+        weight: 0.4
+        anchors: [[0, 100], [0.5, 90], [1, 75], [2, 45], [4, 10]]
+      current_ratio:
+        weight: 0.3
+        anchors: [[0.5, 10], [1, 40], [1.5, 70], [2, 90], [3, 100]]
+      cash_to_debt:
+        weight: 0.3
+        anchors: [[0, 10], [0.5, 40], [1, 70], [2, 90], [5, 100]]
