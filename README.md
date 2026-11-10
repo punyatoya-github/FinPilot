@@ -1,4 +1,4 @@
-# FinPilot (MVP, Phase 1)
+# FinPilot
 
 AI investment research co-pilot. Enter a ticker, get fundamentals, deterministic health scores
 and an AI-written educational report. **Educational use only. Not financial advice.**
@@ -115,7 +115,7 @@ checks catch rule violations; they do not replace reading the reports.
 
 - yfinance is unofficial and may break, be rate-limited, or restrict commercial use. Move to a
   licensed provider (FMP, Polygon) before a public launch by implementing `MarketDataProvider`.
-- Scores use absolute thresholds, not sector-relative ones (Phase 2). Financials, REITs and
+- Scores use absolute thresholds, not sector-relative ones. Financials, REITs and
   utilities can be misjudged, and the dashboard says so.
 - Qualitative sections (business model, competitive position) come from the model's general
   knowledge and can be stale. The prompt asks readers to verify against filings.
