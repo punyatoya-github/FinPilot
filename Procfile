@@ -1,1 +1,1 @@
-web: uvicorn finpilot.main:create_app --factory --host 0.0.0.0 --port ${PORT:-8000}
+web: python -m finpilot --host 0.0.0.0 --port ${PORT:-8000}

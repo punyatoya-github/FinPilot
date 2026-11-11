@@ -24,6 +24,7 @@ dependencies = [
 dev = ["pytest>=8", "pytest-cov>=5", "mypy>=1.10", "ruff>=0.5", "types-PyYAML"]
 
 [project.scripts]
+finpilot = "finpilot.__main__:main"
 finpilot-cli = "finpilot.cli:main"
 finpilot-ui = "finpilot.ui.standalone:main"
 

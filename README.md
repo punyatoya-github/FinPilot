@@ -9,8 +9,11 @@ and an AI-written educational report. **Educational use only. Not financial advi
 python -m venv .venv && source .venv/bin/activate    # Python 3.12   # For Windows -  .venv/Scripts/activate
 pip install -e ".[dev]"
 cp .env.example .env                                  # add FINPILOT_OPENAI_API_KEY
-uvicorn finpilot.main:create_app --factory --reload
+python -m finpilot --reload
 ```
+
+Other equivalent ways to start it: `python run.py`, `finpilot` (console command after
+`pip install -e .`), or `uvicorn finpilot.asgi:app`. Options: `--host`, `--port`, `--reload`.
 
 - Dashboard: http://127.0.0.1:8000/ui (the root URL redirects there)
 - API docs: http://127.0.0.1:8000/docs
@@ -25,10 +28,10 @@ metrics and scores with `degraded: true`, and the dashboard says the report is u
 
 ```bash
 pip install -e .                  # editable install keeps config/scoring.yaml discoverable
-uvicorn finpilot.main:create_app --factory --host 127.0.0.1 --port 8000
+python -m finpilot                # add --port 9000 to change the port
 ```
 
-Drop `--reload` outside development and keep a single worker: the rate limiter is in memory and
+Leave out `--reload` outside development and keep a single worker: the rate limiter is in memory and
 SQLite allows one writer at a time. If you install non-editable (`pip install .`), set
 `FINPILOT_SCORING_CONFIG_PATH` to the absolute path of `config/scoring.yaml`.
 

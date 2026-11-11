@@ -1,0 +1,22 @@
+# systemd unit for a Linux server. Adjust User and paths, then:
+#   sudo cp deploy/finpilot.service /etc/systemd/system/finpilot.service
+#   sudo systemctl daemon-reload && sudo systemctl enable --now finpilot
+#   journalctl -u finpilot -f
+[Unit]
+Description=FinPilot API and dashboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=finpilot
+WorkingDirectory=/opt/finpilot
+EnvironmentFile=/opt/finpilot/.env
+# Keep a single worker: the rate limiter is in-memory and SQLite allows one writer at a time.
+ExecStart=/opt/finpilot/.venv/bin/python -m finpilot --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
